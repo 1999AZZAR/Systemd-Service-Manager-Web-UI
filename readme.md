@@ -10,6 +10,7 @@ A modern, Flask-based web interface for managing systemd services on a Linux ser
 
 ## Screenshot
 
+*(Recommended: Add a screenshot of the main UI here)*
 ![Screenshot](Screenshot.png)
 
 ## Features
@@ -44,7 +45,7 @@ The provided `install.sh` script automates most of the setup process.
 1.  **Clone the Repository:**
     ```bash
     git clone https://github.com/1999AZZAR/Systemd-Service-Manager-Web-UI.git
-    cd Systemd-Service-Manager-Web-UI # Or your chosen directory name
+    cd Systemd-Service-Manager-Web-UI
     ```
 
 2.  **Run the Installation Script:**
@@ -89,9 +90,41 @@ Several parts of the application can be configured:
 *   **Sudoers (`/etc/sudoers.d/90-servicemanager`):**
     *   This file defines the permissions granted to the `SERVICE_USER`.
     *   **Crucially, the `/usr/bin/tee` lines should only be present if you intend to use the file editing feature.** Ensure the path(s) specified for `tee` match the locations you *actually* want to allow writing to (e.g., `/etc/systemd/system/*.service`). **Avoid overly broad permissions like `/usr/bin/tee /etc/*`!**
+    *   See the "Editing Sudoers Safely" section below for how to modify this file.
 
 *   **Tailwind (`templates/index.html`):**
     *   The `tailwind.config` object within the `<script>` tag can be modified to customize colors, fonts, etc., without needing a build step (thanks to the Play CDN).
+
+## Editing Sudoers Safely (using `visudo`)
+
+The `install.sh` script creates the necessary `sudoers` file (`/etc/sudoers.d/90-servicemanager`) automatically. However, if you need to modify it later (e.g., to add or remove `tee` permissions for file editing, or change the allowed commands), **always use the `visudo` command**. Never edit `sudoers` files directly with a text editor like `nano` or `vim`.
+
+`visudo` locks the `sudoers` file and performs syntax checking before saving, preventing you from locking yourself out of `sudo` access due to errors.
+
+**Steps:**
+
+1.  **Open the specific file with `visudo`:**
+    ```bash
+    sudo visudo -f /etc/sudoers.d/90-servicemanager
+    ```
+    *(Replace `90-servicemanager` if you changed the `SUDOERS_FILE_NAME` in `install.sh`)*
+
+2.  **Edit the file:** `visudo` will open the file in your system's default command-line editor (often `nano` or `vi`). Make your changes carefully. For example, to enable editing service files in `/etc/systemd/system/`:
+    ```sudoers
+    # Add or uncomment these lines:
+    www-data ALL=(ALL) NOPASSWD: /usr/bin/tee /etc/systemd/system/*.service
+    ```
+    To disable editing, comment out or delete those `/usr/bin/tee` lines.
+
+3.  **Save and Exit:**
+    *   **Nano:** Press `Ctrl+X`, then `Y` to confirm saving, then `Enter` to confirm the filename.
+    *   **Vi/Vim:** Press `Esc`, then type `:wq` and press `Enter`.
+
+4.  **Syntax Check:** `visudo` will automatically check the syntax.
+    *   If it says `"parsed OK"`, the changes are saved.
+    *   If it reports a syntax error, it will usually ask what you want to do. Choose to **edit the file again (`e`)** to fix the error. **Do not exit without fixing the error**, as this could break `sudo`.
+
+**Important:** Always double-check the permissions you are granting, especially `NOPASSWD` commands and file writing permissions like `tee`.
 
 ## Usage
 
@@ -113,9 +146,9 @@ Several parts of the application can be configured:
 
 **Please read carefully:**
 
-*   **Sudo Access:** The web server user (`www-data`) is granted passwordless `sudo` access for *specific* `systemctl` commands and potentially `tee`. This is the primary security risk. Ensure the `sudoers` file (`/etc/sudoers.d/90-servicemanager`) is correctly configured, has `0440` permissions, is owned by `root:root`, and only allows necessary commands.
+*   **Sudo Access:** The web server user (`www-data`) is granted passwordless `sudo` access for *specific* `systemctl` commands and potentially `tee`. This is the primary security risk. Ensure the `sudoers` file (`/etc/sudoers.d/90-servicemanager`) is correctly configured, has `0440` permissions, is owned by `root:root`, and only allows necessary commands. Use `visudo` for editing.
 *   **File Editing Risk:**
-    *   **This feature is disabled by default in `app.py` and requires specific `sudoers` rules for `/usr/bin/tee` to function.**
+    *   **Requires specific `sudoers` rules for `/usr/bin/tee` to function.**
     *   Allowing file edits via a web UI is **inherently dangerous**. An attacker gaining access to the UI could potentially modify any allowed service file, leading to system compromise.
     *   The application performs basic path validation (`ALLOWED_WRITE_DIRS` in `app.py`) and checks against symlinks, but these might not be foolproof.
     *   **STRONGLY RECOMMEND:** Only enable this feature if absolutely necessary and after carefully restricting the allowed paths in *both* `app.py` and the `sudoers` file.
@@ -131,13 +164,13 @@ Several parts of the application can be configured:
 *   **UI shows "No services found..." but services exist:**
     1.  Check the application logs: `sudo journalctl -u servicemanager.service -f`
     2.  Look for errors related to `sudo`, `systemctl`, or Python parsing (`parse_list_units`).
-    3.  Verify the `sudoers` configuration: `sudo visudo -c` and check permissions/content of `/etc/sudoers.d/90-servicemanager`.
+    3.  Verify the `sudoers` configuration: `sudo visudo -c` and check permissions/content of `/etc/sudoers.d/90-servicemanager`. Use `sudo visudo -f /etc/sudoers.d/90-servicemanager` to edit if needed.
     4.  Test the command manually as the service user: `sudo -u www-data /bin/systemctl list-units --type=service --all --no-legend --no-pager`. Does it work? Does the output look parseable?
-*   **Permission Denied / Sudo Errors in Logs:** Likely an issue with the `sudoers` file. See previous point.
+*   **Permission Denied / Sudo Errors in Logs:** Likely an issue with the `sudoers` file. See previous point and the "Editing Sudoers Safely" section.
 *   **Service Fails to Start (`sudo systemctl status servicemanager.service`):** Check the logs (`journalctl -u servicemanager.service`) for Python errors, path issues, or port conflicts. Ensure the `ExecStart` path in the `.service` file is correct.
 *   **UI Appears Broken / Styles Missing:** Hard refresh your browser (Ctrl+Shift+R or Cmd+Shift+R) to clear the cache. Check the browser's developer console (F12) for errors loading CSS, JS, or API requests.
 *   **File Editing Fails:**
-    1.  Check `sudoers` rules for `/usr/bin/tee`. Are they present and correct for the target path?
+    1.  Check `sudoers` rules for `/usr/bin/tee` using `sudo visudo -f /etc/sudoers.d/90-servicemanager`. Are they present and correct for the target path?
     2.  Check `ALLOWED_WRITE_DIRS` in `app.py`. Does it include the parent directory of the target file?
     3.  Check application logs (`journalctl`) for specific errors from `app.py` or the `tee` command.
 
