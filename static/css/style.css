@@ -1,0 +1,103 @@
+/* --- Status Color Classes --- */
+/* Applied to the TD element containing the status text */
+.status-active { color: #166534; font-weight: 500; } /* Tailwind green-800 */
+.status-activating { color: #1d4ed8; font-style: italic; } /* Tailwind blue-700 */
+.status-inactive { color: #737373; } /* Tailwind neutral-500 */
+.status-failed { color: #b91c1c; font-weight: 600;} /* Tailwind red-700 */
+
+.status-enabled { color: #15803d; font-weight: 500; } /* Tailwind green-700 */
+.status-disabled { color: #dc2626; } /* Tailwind red-600 */
+.status-static { color: #737373; font-style: italic; } /* Tailwind neutral-500 */
+.status-masked { color: #ea580c; font-weight: 500; } /* Tailwind orange-600 */
+/* --- End Status Color Classes --- */
+
+/* --- Custom Toast Styles --- */
+/* Based on Tailwind classes but defined here for JS control */
+.custom-toast {
+    padding: 0.75rem 1rem; /* px-4 py-3 */
+    border-radius: 0.75rem; /* rounded-xl */
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1); /* shadow-lg */
+    font-size: 0.875rem; /* text-sm */
+    font-weight: 500; /* font-medium */
+    display: inline-flex; /* Ensure it shrinks to content */
+    align-items: center;
+    gap: 0.5rem; /* gap-2 */
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.3s ease-out, transform 0.3s ease-out;
+}
+.custom-toast.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+.toast-success {
+    background-color: #dcfce7; /* green-100 */
+    color: #166534; /* green-800 */
+}
+.toast-error {
+    background-color: #fee2e2; /* red-100 */
+    color: #991b1b; /* red-800 */
+}
+.toast-warning {
+    background-color: #ffedd5; /* orange-100 */
+    color: #9a3412; /* orange-800 */
+}
+.toast-info {
+    background-color: #e0e7ff; /* indigo-100 */
+    color: #3730a3; /* indigo-800 */
+}
+
+/* Optional: Ensure icons in toasts are sized correctly */
+.custom-toast i.material-icons-outlined {
+    font-size: 1.25rem; /* text-xl */
+}
+/* --- End Custom Toast Styles --- */
+
+/* --- Sort Icon Styles --- */
+.sort-icon {
+    display: inline-block;
+    width: 1em; /* Reserve space */
+    height: 1em;
+    margin-left: 0.3em;
+    vertical-align: middle;
+    opacity: 0.4; /* Dimmed when inactive */
+    transition: opacity 0.2s;
+}
+th:hover .sort-icon {
+    opacity: 0.6;
+}
+th.sort-active .sort-icon {
+    opacity: 1;
+}
+.sort-icon::before {
+    /* *** THIS IS THE FIX *** */
+    font-family: 'Material Icons'; /* Use the base font family name */
+    /* *** END OF FIX *** */
+    font-weight: normal; /* Ensure default weight */
+    font-style: normal;
+    font-size: 1.1rem; /* Adjust size */
+    line-height: 1;
+    letter-spacing: normal;
+    text-transform: none;
+    display: inline-block;
+    white-space: nowrap;
+    word-wrap: normal;
+    direction: ltr;
+    -webkit-font-feature-settings: 'liga';
+    -webkit-font-smoothing: antialiased;
+    content: 'unfold_more'; /* Default icon (up and down) */
+}
+th.sort-asc .sort-icon::before {
+    content: 'arrow_upward';
+}
+th.sort-desc .sort-icon::before {
+    content: 'arrow_downward';
+}
+/* --- End Sort Icon Styles --- */
+
+/* Minor tweak for action buttons alignment */
+#service-list .actions-cell button {
+    vertical-align: middle;
+}
+
+/* Add any other non-Tailwind custom styles here if absolutely needed */

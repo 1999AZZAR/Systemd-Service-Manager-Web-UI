@@ -1,0 +1,33 @@
+[Unit]
+Description=Web UI Service Manager Backend
+After=network.target
+
+[Service]
+# Option 1: Run as www-data (common for web apps, check permissions)
+User=www-data
+Group=www-data
+
+# Option 2: Create a dedicated user (Recommended for isolation)
+# User=svcmanager
+# Group=svcmanager
+# (Remember to create this user: sudo useradd -r -s /bin/false svcmanager)
+
+WorkingDirectory=/opt/servicemanager
+# Make sure the python path is correct and flask is installed for this python env
+# For production, use gunicorn or uwsgi instead of `flask run`
+ExecStart=/opt/servicemanager/venv/bin/python3 /opt/servicemanager/app.py
+# Example using Gunicorn (install with pip install gunicorn):
+# ExecStart=/path/to/your/venv/bin/gunicorn --workers 3 --bind 0.0.0.0:5001 app:app
+
+Restart=on-failure
+# Add environment variables if needed, e.g., for configuration
+# Environment="FLASK_ENV=production"
+
+# Security hardening (optional but recommended)
+# PrivateTmp=true
+# ProtectSystem=full
+# ProtectHome=true
+# NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target

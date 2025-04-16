@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>System Service Manager</title>
+    <!-- Tailwind CSS via CDN -->
+    <script src="https://cdn.tailwindcss.com?plugins=forms"></script>
+    <!-- Material Icons -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons|Material+Icons+Outlined" rel="stylesheet">
+    <!-- Custom CSS Link -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script>
+        // Optional: Tailwind Configuration
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        // Example Material You-ish Purple Palette
+                        'm-purple': {
+                            '50': '#f4efff',
+                            '100': '#eaddff',
+                            '200': '#d0bcff',
+                            '300': '#b69df8',
+                            '400': '#9a7ff0',
+                            '500': '#7f67ea', // Primary Action
+                            '600': '#6750a4', // Darker variant
+                            '700': '#523f82',
+                            '800': '#3c2d61',
+                            '900': '#271c40'
+                        },
+                        // Add other M3-inspired colors if needed
+                        'm-green': '#69de8a',
+                        'm-red': '#ff8a8a',
+                        'm-orange': '#ffca7b',
+                        'm-blue': '#7ac0ff',
+                        'm-teal': '#6ae8d3'
+                    },
+                    borderRadius: {
+                        'xl': '1rem', // Default xl
+                        '2xl': '1.5rem', // M3 often uses larger radii
+                        '3xl': '2rem',
+                    },
+                    backdropBlur: {
+                        'xl': '24px',
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-gradient-to-br from-m-purple-50 via-purple-50 to-indigo-100 text-gray-800 font-sans">
+
+    <!-- Navbar with Frosted Glass -->
+    <nav class="sticky top-0 z-40 bg-m-purple-100/80 backdrop-blur-lg shadow-sm mb-6">
+        <div class="container mx-auto px-4 py-3">
+            <a href="#" class="text-xl font-semibold text-m-purple-900">Service Manager</a>
+        </div>
+    </nav>
+
+    <!-- Main Content Area -->
+    <main class="container mx-auto px-4 pb-10">
+
+        <!-- Main Card with Frosted Glass -->
+        <div class="bg-white/70 backdrop-blur-xl shadow-lg rounded-2xl overflow-hidden">
+            <div class="p-6">
+                <!-- Search and Actions Row -->
+                <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
+                    <!-- Search Input -->
+                    <div class="relative flex-grow sm:flex-grow-0 sm:w-72">
+                        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                            <i class="material-icons-outlined">search</i>
+                        </span>
+                        <input type="text" id="search-input" placeholder="Filter services..." class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-full focus:ring-2 focus:ring-m-purple-300 focus:border-m-purple-500 transition duration-150 ease-in-out text-sm">
+                    </div>
+                    <!-- Action Buttons -->
+                    <div class="flex gap-3 flex-wrap">
+                        <button id="refresh-button" title="Refresh List" class="inline-flex items-center gap-2 px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-full text-sm font-medium transition duration-150 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400">
+                            <i class="material-icons-outlined text-base">refresh</i>
+                            <span>Refresh</span>
+                        </button>
+                        <button id="daemon-reload-button" title="Reload systemd manager configuration" class="inline-flex items-center gap-2 px-4 py-2 bg-m-orange/80 hover:bg-m-orange text-m-purple-900 rounded-full text-sm font-medium transition duration-150 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500">
+                            <i class="material-icons-outlined text-base">sync</i>
+                            <span>Reload Daemon</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Loader -->
+                <div id="loader" class="flex flex-col items-center justify-center py-16 text-gray-500">
+                    <!-- Basic Spinner -->
+                    <svg class="animate-spin h-8 w-8 text-m-purple-500 mb-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <p>Loading services...</p>
+                 </div>
+
+                <!-- Services Table (Hidden Initially) -->
+                <div id="service-table-container" class="overflow-x-auto" style="display: none;">
+                     <table id="service-table" class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50/50" id="service-table-head">
+                            <tr>
+                                <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100/50 transition-colors" data-sort-key="unit">
+                                    Unit <span class="sort-icon"></span>
+                                </th>
+                                <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100/50 transition-colors" data-sort-key="load">
+                                    Load <span class="sort-icon"></span>
+                                </th>
+                                <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100/50 transition-colors" data-sort-key="active">
+                                    Active <span class="sort-icon"></span>
+                                </th>
+                                <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100/50 transition-colors" data-sort-key="sub">
+                                    Sub <span class="sort-icon"></span>
+                                </th>
+                                <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100/50 transition-colors" data-sort-key="enabled">
+                                    Enabled <span class="sort-icon"></span>
+                                </th>
+                                <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100/50 transition-colors" data-sort-key="description">
+                                    Description <span class="sort-icon"></span>
+                                </th>
+                                <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Actions
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody id="service-list" class="bg-white/60 divide-y divide-gray-200/80">
+                            <!-- Service rows will be injected here -->
+                        </tbody>
+                    </table>
+                </div>
+                <p id="no-results" class="text-center py-10 text-gray-500" style="display: none;">No services found matching your filter.</p>
+            </div>
+        </div>
+    </main>
+
+    <!-- Status Modal -->
+    <div id="status-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm hidden" aria-labelledby="status-modal-title-host" role="dialog" aria-modal="true">
+        <div class="bg-white/90 backdrop-blur-xl rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-200/80 flex justify-between items-center">
+                <h4 class="text-lg font-semibold text-gray-800" id="status-modal-title-host">Service Status: <span id="status-modal-title"></span></h4>
+                <button type="button" class="text-gray-400 hover:text-gray-600" onclick="document.getElementById('status-modal').classList.add('hidden')">
+                    <span class="sr-only">Close modal</span>
+                    <i class="material-icons-outlined">close</i>
+                </button>
+            </div>
+            <div class="p-6 max-h-[70vh] overflow-y-auto">
+                <pre id="status-modal-content" class="bg-gray-100 p-4 rounded-lg font-mono text-xs text-gray-700 whitespace-pre-wrap break-words">Loading...</pre>
+            </div>
+            <div class="px-6 py-3 bg-gray-50/70 text-right">
+                <button type="button" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg text-sm font-medium transition" onclick="document.getElementById('status-modal').classList.add('hidden')">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- File View/Edit Modal -->
+    <div id="file-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm hidden" aria-labelledby="file-modal-title-host" role="dialog" aria-modal="true">
+        <div class="bg-white/90 backdrop-blur-xl rounded-2xl shadow-xl w-full max-w-3xl overflow-hidden flex flex-col max-h-[90vh]">
+             <div class="px-6 py-4 border-b border-gray-200/80 flex justify-between items-center flex-shrink-0">
+                <h4 class="text-lg font-semibold text-gray-800" id="file-modal-title-host">Service File: <span id="file-modal-title"></span></h4>
+                <button type="button" class="text-gray-400 hover:text-gray-600" onclick="document.getElementById('file-modal').classList.add('hidden')">
+                    <span class="sr-only">Close modal</span><i class="material-icons-outlined">close</i>
+                </button>
+            </div>
+
+            <div class="p-6 flex-grow overflow-y-auto">
+                 <p class="text-xs text-gray-500 mb-2" id="file-modal-path">Path: Loading...</p>
+                <p id="file-edit-warning" class="p-3 mb-3 bg-red-100/80 text-red-700 text-sm rounded-lg hidden"><i class="material-icons-outlined text-base align-middle mr-1">warning</i>WARNING: Editing system files can break your system. Save changes with caution.</p>
+                <div id="file-loader" class="flex items-center justify-center py-10 text-gray-500" style="display:none;">
+                     <svg class="animate-spin h-6 w-6 text-m-purple-500 mr-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                     <span>Loading file content...</span>
+                </div>
+                <textarea id="file-modal-content" class="w-full h-96 p-3 border border-gray-300 rounded-lg font-mono text-xs focus:ring-1 focus:ring-m-purple-300 focus:border-m-purple-500 transition resize-none" style="display:none;" readonly spellcheck="false"></textarea>
+            </div>
+
+             <div class="px-6 py-3 bg-gray-50/70 flex justify-between items-center flex-shrink-0">
+                 <!-- Edit/Save/Cancel Buttons -->
+                 <div id="edit-controls" class="flex gap-3" style="display: none;">
+                     <button id="save-file-button" class="inline-flex items-center gap-2 px-4 py-2 bg-m-green/80 hover:bg-m-green text-m-purple-900 rounded-lg text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed">
+                         <i class="material-icons-outlined text-base">save</i>Save Changes
+                     </button>
+                     <button id="cancel-edit-button" class="inline-flex items-center gap-2 px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400 disabled:opacity-50 disabled:cursor-not-allowed">
+                         <i class="material-icons-outlined text-base">cancel</i>Cancel
+                     </button>
+                 </div>
+                 <!-- Edit Button (Initially Hidden) -->
+                 <button id="edit-file-button" class="inline-flex items-center gap-2 px-4 py-2 bg-m-purple-100 hover:bg-m-purple-200 text-m-purple-700 rounded-lg text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-m-purple-400" style="display: none;">
+                     <i class="material-icons-outlined text-base">edit</i>Edit File
+                 </button>
+                <!-- Close Button -->
+                 <button type="button" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg text-sm font-medium transition" onclick="document.getElementById('file-modal').classList.add('hidden')">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Toast Container -->
+    <div id="toast-container" class="fixed bottom-5 right-5 z-[100] space-y-2">
+        <!-- Toasts injected here -->
+    </div>
+
+
+    <!-- Custom JavaScript -->
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>
