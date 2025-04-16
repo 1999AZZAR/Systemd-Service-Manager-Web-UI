@@ -1,13 +1,16 @@
 document.addEventListener('DOMContentLoaded', function() {
     // --- Cache DOM elements ---
+    const rootHtml = document.documentElement; // Changed from getElementById('html-root')
     const serviceListBody = document.getElementById('service-list');
     const loader = document.getElementById('loader');
     const serviceTableContainer = document.getElementById('service-table-container');
-    const serviceTableHead = document.getElementById('service-table-head'); // Get the table head
+    const serviceTableHead = document.getElementById('service-table-head');
     const searchInput = document.getElementById('search-input');
     const noResults = document.getElementById('no-results');
     const refreshButton = document.getElementById('refresh-button');
     const daemonReloadButton = document.getElementById('daemon-reload-button');
+    const themeToggleButton = document.getElementById('theme-toggle-button'); // Theme button
+    const themeIcon = document.getElementById('theme-icon'); // Theme icon
 
     // Status Modal Elements
     const statusModal = document.getElementById('status-modal');
@@ -29,27 +32,80 @@ document.addEventListener('DOMContentLoaded', function() {
     // --- State Variables ---
     let allServicesData = [];
     let currentEditingService = null;
-    let currentSortKey = 'unit'; // Default sort column
-    let currentSortDirection = 'asc'; // Default sort direction ('asc' or 'desc')
+    let currentSortKey = 'unit';
+    let currentSortDirection = 'asc';
+
+    // --- Theme Management ---
+    const THEME_KEY = 'service-manager-theme';
+
+    function applyTheme(theme) {
+        if (theme === 'dark') {
+            rootHtml.classList.add('dark');
+            if (themeIcon) themeIcon.textContent = 'light_mode'; // Show sun icon
+            if (themeToggleButton) themeToggleButton.title = "Switch to Light Theme";
+        } else {
+            rootHtml.classList.remove('dark');
+            if (themeIcon) themeIcon.textContent = 'dark_mode'; // Show moon icon
+            if (themeToggleButton) themeToggleButton.title = "Switch to Dark Theme";
+        }
+    }
+
+    function toggleTheme() {
+        const currentTheme = rootHtml.classList.contains('dark') ? 'dark' : 'light';
+        const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+        applyTheme(newTheme);
+        try {
+            localStorage.setItem(THEME_KEY, newTheme);
+            console.log(`Theme saved: ${newTheme}`);
+        } catch (e) {
+            console.warn("Could not save theme preference to localStorage.", e);
+            showToast("Could not save theme preference.", 'warning');
+        }
+    }
+
+    function initializeTheme() {
+        let preferredTheme = 'light'; // Default
+        try {
+            const savedTheme = localStorage.getItem(THEME_KEY);
+            if (savedTheme === 'dark' || savedTheme === 'light') {
+                preferredTheme = savedTheme;
+                console.log(`Using saved theme: ${preferredTheme}`);
+            } else {
+                // No saved theme, check system preference
+                if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                    preferredTheme = 'dark';
+                    console.log("Using system preference: dark");
+                } else {
+                     console.log("Using system preference: light");
+                }
+            }
+        } catch (e) {
+            console.warn("Could not access localStorage or matchMedia, defaulting to light theme.", e);
+        }
+        applyTheme(preferredTheme); // Apply the determined theme
+    }
+
 
     // --- Utility Functions ---
 
-    // Simple Custom Toast Function
+    // Simple Custom Toast Function (remains the same)
     function showToast(message, type = 'info', duration = 4000) {
         const container = document.getElementById('toast-container');
         if (!container) return;
 
         const toast = document.createElement('div');
-        let bgColorClass = 'toast-info'; // Default
+        let baseClass = 'custom-toast'; // Base class for structure/animation
+        let typeClass = 'toast-info'; // Default type class
         let icon = 'info';
 
         switch (type) {
-            case 'success': bgColorClass = 'toast-success'; icon = 'check_circle'; break;
-            case 'error':   bgColorClass = 'toast-error'; icon = 'error'; break;
-            case 'warning': bgColorClass = 'toast-warning'; icon = 'warning'; break;
+            case 'success': typeClass = 'toast-success'; icon = 'check_circle'; break;
+            case 'error':   typeClass = 'toast-error'; icon = 'error'; break;
+            case 'warning': typeClass = 'toast-warning'; icon = 'warning'; break;
         }
 
-        toast.className = `custom-toast ${bgColorClass}`;
+        // Combine base and type classes
+        toast.className = `${baseClass} ${typeClass}`;
         toast.innerHTML = `<i class="material-icons-outlined">${icon}</i><span>${message}</span>`;
 
         container.appendChild(toast);
@@ -68,37 +124,32 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
 
-    // --- Modal Controls ---
+    // --- Modal Controls --- (remains the same)
     function openModal(modalElement) {
         modalElement.classList.remove('hidden');
-        // Optional: Trap focus within the modal for accessibility
     }
 
     function closeModal(modalElement) {
         modalElement.classList.add('hidden');
     }
 
-    // Add listeners to modal close buttons (can be done once)
     statusModal.querySelector('button[onclick*="status-modal"]').addEventListener('click', () => closeModal(statusModal));
     fileModal.querySelector('button[onclick*="file-modal"]').addEventListener('click', () => closeModal(fileModal));
-     // Allow closing modals by clicking the background overlay
      statusModal.addEventListener('click', (e) => { if (e.target === statusModal) closeModal(statusModal); });
      fileModal.addEventListener('click', (e) => { if (e.target === fileModal) {
-        // Only close file modal from background if *not* in edit mode
         if (editControls.style.display === 'none') {
              closeModal(fileModal);
-             resetFileModalToViewMode(); // Ensure reset on background close
+             resetFileModalToViewMode();
         }
      }});
 
 
-    // --- API Communication ---
+    // --- API Communication --- (remains the same)
     async function apiRequest(method, url, data = null) {
         try {
             const options = { method: method, headers: {} };
             if (data) { options.headers['Content-Type'] = 'application/json'; options.body = JSON.stringify(data); }
             const response = await fetch(url, options);
-            // Try to parse JSON, fallback to text for errors
             const responseData = await response.json().catch(async () => {
                  return { error: `HTTP ${response.status}: ${await response.text().catch(()=> response.statusText)}` };
              });
@@ -108,34 +159,32 @@ document.addEventListener('DOMContentLoaded', function() {
                  throw new Error(errorMsg);
              }
             if (responseData.error) throw new Error(responseData.error);
-            // Show backend warnings as toasts
             if (responseData.warning) showToast(responseData.warning, 'warning');
 
-            return responseData; // Return parsed data
+            return responseData;
         } catch (error) {
             console.error(`API Request Failed: ${method} ${url}`, error);
-            showToast(error.message, 'error', 6000); // Show error longer
+            showToast(error.message, 'error', 6000);
             throw error;
         }
     }
 
-    // --- Service Actions ---
+    // --- Service Actions --- (remains the same)
     async function fetchServices() {
-        loader.style.display = 'flex'; // Show loader
+        loader.style.display = 'flex';
         serviceTableContainer.style.display = 'none';
         noResults.style.display = 'none';
-        serviceListBody.innerHTML = ''; // Clear previous list
+        serviceListBody.innerHTML = '';
 
         try {
             const services = await apiRequest('GET', '/api/services');
-            allServicesData = services || []; // Ensure it's an array
-            // Apply initial filter and sort before rendering
+            allServicesData = services || [];
             applyFilterAndSort();
-            updateSortIndicators(); // Update headers on initial load
+            updateSortIndicators();
         } catch (error) {
-            loader.innerHTML = '<p class="text-red-600">Failed to load services. Check backend logs.</p>';
+            loader.innerHTML = '<p class="text-red-600 dark:text-red-400">Failed to load services. Check backend logs.</p>';
         } finally {
-             loader.style.display = 'none'; // Hide loader
+             loader.style.display = 'none';
         }
     }
 
@@ -152,11 +201,9 @@ document.addEventListener('DOMContentLoaded', function() {
             const result = await apiRequest('POST', `/api/services/${serviceName}/${action}`);
             const message = result.success || `${action} successful. ${result.output || ''}`.trim();
             showToast(message , 'success');
-            // Refresh list after a short delay
             setTimeout(fetchServices, 1000);
          } catch (error) {
-             // Error toast shown by apiRequest
-             if (actionButton) { // Re-enable button on error
+             if (actionButton) {
                 actionButton.disabled = false;
                 actionButton.classList.remove('opacity-50', 'cursor-not-allowed');
              }
@@ -176,31 +223,31 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // --- File Modal Logic ---
+    // --- File Modal Logic --- (remains the same, reset function adjusted slightly)
     function resetFileModalToViewMode() {
         fileModalContent.readOnly = true;
         fileModalContent.style.display = 'none';
         editControls.style.display = 'none';
-        editButton.style.display = 'none'; // Hide initially until content loads
+        editButton.style.display = 'none';
         fileLoader.style.display = 'none';
         fileEditWarning.style.display = 'none';
-        // Ensure buttons are enabled
         saveButton.disabled = false;
         cancelEditButton.disabled = false;
         saveButton.classList.remove('opacity-50', 'cursor-not-allowed');
         cancelEditButton.classList.remove('opacity-50', 'cursor-not-allowed');
-        fileModalContent.classList.remove('border-m-purple-500', 'ring-1', 'ring-m-purple-300'); // Remove highlight
-        currentEditingService = null; // Clear tracking
+        // Remove edit highlight for both themes
+        fileModalContent.classList.remove('border-m-purple-500', 'ring-1', 'ring-m-purple-300', 'dark:border-m-purple-d-400', 'dark:ring-m-purple-d-300');
+        currentEditingService = null;
     }
 
     async function showServiceFile(serviceName) {
-        resetFileModalToViewMode(); // Ensure modal is in view mode initially
-        currentEditingService = serviceName; // Track service name
+        resetFileModalToViewMode();
+        currentEditingService = serviceName;
 
         fileModalTitle.textContent = serviceName;
         fileModalContent.value = '';
         fileModalPath.textContent = 'Path: Loading...';
-        fileLoader.style.display = 'flex'; // Show loader
+        fileLoader.style.display = 'flex';
 
         openModal(fileModal);
 
@@ -209,19 +256,18 @@ document.addEventListener('DOMContentLoaded', function() {
             fileModalContent.value = result.file_content || 'No file content received.';
             fileModalPath.textContent = `Path: ${result.file_path || 'N/A'}`;
             fileModalContent.style.display = 'block';
-            editButton.style.display = 'inline-flex'; // Show Edit button now
+            editButton.style.display = 'inline-flex';
         } catch (error) {
             fileModalContent.value = `Error loading file: ${error.message}`;
             fileModalPath.textContent = 'Path: Error';
             fileModalContent.style.display = 'block';
-            editButton.style.display = 'none'; // Hide edit on error
+            editButton.style.display = 'none';
         } finally {
              fileLoader.style.display = 'none';
-             // Adjust height maybe? Textarea resize is tricky.
         }
     }
 
-    // --- UI Rendering ---
+    // --- UI Rendering --- (Helper functions remain same, renderServiceList updated)
     function getStatusClass(status) {
         if (!status) return ''; status = status.toLowerCase();
         if (status.includes('failed')) return 'status-failed';
@@ -264,11 +310,11 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    // Updated renderServiceList to use dark mode styles correctly
     function renderServiceList(services) {
         serviceListBody.innerHTML = '';
 
         if (!services || services.length === 0) {
-            // Visibility handled by applyFilterAndSort
             return;
         }
 
@@ -276,26 +322,29 @@ document.addEventListener('DOMContentLoaded', function() {
         services.forEach(service => {
             const row = document.createElement('tr');
             row.dataset.serviceName = service.unit;
-            row.classList.add('hover:bg-gray-50/50', 'transition-colors', 'duration-100');
+            // Added dark mode hover style
+            row.classList.add('hover:bg-gray-50/50', 'dark:hover:bg-m-gray-700/50', 'transition-colors', 'duration-100');
 
             const enabledClass = getEnabledClass(service.enabled);
             const activeClass = getStatusClass(service.active);
 
+            // Note: Tailwind dark: classes are applied in the HTML template string now.
+            // Custom classes like status-active will have their dark versions applied via style.css
             row.innerHTML = `
-                <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">${service.unit}</td>
-                <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">${service.load}</td>
+                <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">${service.unit}</td>
+                <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">${service.load}</td>
                 <td class="px-4 py-3 whitespace-nowrap text-sm ${activeClass}">${service.active}</td>
-                <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">${service.sub}</td>
+                <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">${service.sub}</td>
                 <td class="px-4 py-3 whitespace-nowrap text-sm ${enabledClass}">${service.enabled}</td>
-                <td class="px-4 py-3 text-sm text-gray-600 max-w-xs truncate" title="${service.description}">${service.description}</td>
+                <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-300 max-w-xs truncate" title="${service.description}">${service.description}</td>
                 <td class="px-4 py-3 whitespace-nowrap text-sm font-medium space-x-1 actions-cell">
-                    <button title="Start" data-action="start" class="p-1 rounded-full text-green-600 hover:bg-green-100 transition focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"><i class="material-icons-outlined text-lg">play_arrow</i></button>
-                    <button title="Stop" data-action="stop" class="p-1 rounded-full text-red-600 hover:bg-red-100 transition focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed"><i class="material-icons-outlined text-lg">stop</i></button>
-                    <button title="Restart" data-action="restart" class="p-1 rounded-full text-blue-600 hover:bg-blue-100 transition focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"><i class="material-icons-outlined text-lg">refresh</i></button>
-                    <button title="Enable" data-action="enable" class="p-1 rounded-full text-teal-600 hover:bg-teal-100 transition focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-teal-500 disabled:opacity-50 disabled:cursor-not-allowed"><i class="material-icons-outlined text-lg">power_settings_new</i></button>
-                    <button title="Disable" data-action="disable" class="p-1 rounded-full text-orange-600 hover:bg-orange-100 transition focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-orange-500 disabled:opacity-50 disabled:cursor-not-allowed"><i class="material-icons-outlined text-lg">remove_circle_outline</i></button>
-                    <button title="Status" data-action="status" class="p-1 rounded-full text-gray-500 hover:bg-gray-200 transition focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-gray-500 disabled:opacity-50 disabled:cursor-not-allowed"><i class="material-icons-outlined text-lg">info_outline</i></button>
-                    <button title="View/Edit File" data-action="file" class="p-1 rounded-full text-gray-500 hover:bg-gray-200 transition focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-gray-500 disabled:opacity-50 disabled:cursor-not-allowed"><i class="material-icons-outlined text-lg">description</i></button>
+                    <button title="Start" data-action="start" class="p-1 rounded-full transition focus:outline-none focus:ring-2 focus:ring-offset-1 dark:focus:ring-offset-m-gray-800 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"><i class="material-icons-outlined text-lg">play_arrow</i></button>
+                    <button title="Stop" data-action="stop" class="p-1 rounded-full transition focus:outline-none focus:ring-2 focus:ring-offset-1 dark:focus:ring-offset-m-gray-800 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed"><i class="material-icons-outlined text-lg">stop</i></button>
+                    <button title="Restart" data-action="restart" class="p-1 rounded-full transition focus:outline-none focus:ring-2 focus:ring-offset-1 dark:focus:ring-offset-m-gray-800 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"><i class="material-icons-outlined text-lg">refresh</i></button>
+                    <button title="Enable" data-action="enable" class="p-1 rounded-full transition focus:outline-none focus:ring-2 focus:ring-offset-1 dark:focus:ring-offset-m-gray-800 focus:ring-teal-500 disabled:opacity-50 disabled:cursor-not-allowed"><i class="material-icons-outlined text-lg">power_settings_new</i></button>
+                    <button title="Disable" data-action="disable" class="p-1 rounded-full transition focus:outline-none focus:ring-2 focus:ring-offset-1 dark:focus:ring-offset-m-gray-800 focus:ring-orange-500 disabled:opacity-50 disabled:cursor-not-allowed"><i class="material-icons-outlined text-lg">remove_circle_outline</i></button>
+                    <button title="Status" data-action="status" class="p-1 rounded-full transition focus:outline-none focus:ring-2 focus:ring-offset-1 dark:focus:ring-offset-m-gray-800 focus:ring-gray-500 disabled:opacity-50 disabled:cursor-not-allowed"><i class="material-icons-outlined text-lg">info_outline</i></button>
+                    <button title="View/Edit File" data-action="file" class="p-1 rounded-full transition focus:outline-none focus:ring-2 focus:ring-offset-1 dark:focus:ring-offset-m-gray-800 focus:ring-gray-500 disabled:opacity-50 disabled:cursor-not-allowed"><i class="material-icons-outlined text-lg">description</i></button>
                 </td>
             `;
             fragment.appendChild(row);
@@ -307,7 +356,6 @@ document.addEventListener('DOMContentLoaded', function() {
     function applyFilterAndSort() {
         const searchTerm = searchInput.value.toLowerCase().trim();
 
-        // 1. Filter
         const filteredServices = allServicesData.filter(service => {
             if (!searchTerm) return true;
             return (service.unit?.toLowerCase().includes(searchTerm)) ||
@@ -316,13 +364,10 @@ document.addEventListener('DOMContentLoaded', function() {
                    (service.enabled?.toLowerCase().includes(searchTerm));
         });
 
-        // 2. Sort
         const sortedServices = sortData(filteredServices, currentSortKey, currentSortDirection);
 
-        // 3. Render
         renderServiceList(sortedServices);
 
-        // 4. Update visibility
         if (sortedServices.length > 0) {
             noResults.style.display = 'none';
             serviceTableContainer.style.display = 'block';
@@ -332,7 +377,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // --- Event Delegation ---
+    // --- Event Delegation --- (remains the same)
     serviceListBody.addEventListener('click', (event) => { // Action Buttons
         const button = event.target.closest('button[data-action]');
         if (button) { handleActionClick(button); }
@@ -364,33 +409,39 @@ document.addEventListener('DOMContentLoaded', function() {
             currentSortDirection = 'asc';
         }
         updateSortIndicators();
-        applyFilterAndSort(); // Re-apply filter and sort
+        applyFilterAndSort();
     }
 
     // --- Global Event Listeners ---
-    searchInput.addEventListener('input', applyFilterAndSort); // Filter/sort on input
+    searchInput.addEventListener('input', applyFilterAndSort);
     refreshButton.addEventListener('click', fetchServices);
     daemonReloadButton.addEventListener('click', () => { performServiceAction('daemon', 'daemon-reload'); });
+    // Add listener for the theme toggle button
+    if (themeToggleButton) {
+        themeToggleButton.addEventListener('click', toggleTheme);
+    }
 
-    // --- File Modal Edit/Save/Cancel Listeners ---
+    // --- File Modal Edit/Save/Cancel Listeners --- (Save adjusted slightly for theme)
     editButton.addEventListener('click', () => {
         fileModalContent.readOnly = false;
         editControls.style.display = 'flex';
         editButton.style.display = 'none';
         fileEditWarning.style.display = 'block';
         fileModalContent.focus();
-        fileModalContent.classList.add('border-m-purple-500', 'ring-1', 'ring-m-purple-300');
+        // Add edit highlight for both themes
+        fileModalContent.classList.add('border-m-purple-500', 'ring-1', 'ring-m-purple-300', 'dark:border-m-purple-d-400', 'dark:ring-m-purple-d-300');
         showToast('Editing enabled. Be careful!', 'warning');
     });
 
     cancelEditButton.addEventListener('click', () => {
         if (currentEditingService) {
             showToast('Changes cancelled. Reloading file...', 'info', 1500);
+            // No need to call reset here, showServiceFile calls it
             showServiceFile(currentEditingService);
         } else {
              resetFileModalToViewMode();
         }
-         fileModalContent.classList.remove('border-m-purple-500', 'ring-1', 'ring-m-purple-300');
+        // remove highlight handled in resetFileModalToViewMode now
     });
 
     saveButton.addEventListener('click', async () => {
@@ -413,7 +464,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const message = result.success || `File saved. ${result.output || ''}`.trim();
             showToast(message, 'success');
             closeModal(fileModal);
-            resetFileModalToViewMode();
+            resetFileModalToViewMode(); // Ensure modal is reset
             // Maybe refresh main list after save? Optional.
             // setTimeout(fetchServices, 500);
         } catch (error) {
@@ -428,5 +479,6 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // --- Initial Load ---
-    fetchServices();
+    initializeTheme(); // Initialize the theme first
+    fetchServices(); // Then fetch data
 });

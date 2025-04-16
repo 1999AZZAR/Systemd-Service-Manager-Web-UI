@@ -1,18 +1,33 @@
-/* --- Status Color Classes --- */
-/* Applied to the TD element containing the status text */
-.status-active { color: #166534; font-weight: 500; } /* Tailwind green-800 */
-.status-activating { color: #1d4ed8; font-style: italic; } /* Tailwind blue-700 */
-.status-inactive { color: #737373; } /* Tailwind neutral-500 */
-.status-failed { color: #b91c1c; font-weight: 600;} /* Tailwind red-700 */
+/* Apply base transition for smoother theme changes */
+body {
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
 
-.status-enabled { color: #15803d; font-weight: 500; } /* Tailwind green-700 */
-.status-disabled { color: #dc2626; } /* Tailwind red-600 */
-.status-static { color: #737373; font-style: italic; } /* Tailwind neutral-500 */
-.status-masked { color: #ea580c; font-weight: 500; } /* Tailwind orange-600 */
+/* --- Status Color Classes --- */
+/* Light Theme (Defaults) */
+.status-active { color: #166534; font-weight: 500; } /* green-800 */
+.status-activating { color: #1d4ed8; font-style: italic; } /* blue-700 */
+.status-inactive { color: #737373; } /* neutral-500 */
+.status-failed { color: #b91c1c; font-weight: 600;} /* red-700 */
+.status-enabled { color: #15803d; font-weight: 500; } /* green-700 */
+.status-disabled { color: #dc2626; } /* red-600 */
+.status-static { color: #737373; font-style: italic; } /* neutral-500 */
+.status-masked { color: #ea580c; font-weight: 500; } /* orange-600 */
+
+/* Dark Theme Overrides */
+.dark .status-active { color: #6ee7b7; } /* emerald-300 */
+.dark .status-activating { color: #93c5fd; font-style: italic; } /* blue-300 */
+.dark .status-inactive { color: #a3a3a3; } /* neutral-400 */
+.dark .status-failed { color: #fca5a5; font-weight: 600;} /* red-300 */
+.dark .status-enabled { color: #86efac; } /* green-300 */
+.dark .status-disabled { color: #fda4af; } /* rose-300 */
+.dark .status-static { color: #a3a3a3; font-style: italic; } /* neutral-400 */
+.dark .status-masked { color: #fdba74; font-weight: 500; } /* orange-300 */
 /* --- End Status Color Classes --- */
 
+
 /* --- Custom Toast Styles --- */
-/* Based on Tailwind classes but defined here for JS control */
+/* Base structure */
 .custom-toast {
     padding: 0.75rem 1rem; /* px-4 py-3 */
     border-radius: 0.75rem; /* rounded-xl */
@@ -24,30 +39,26 @@
     gap: 0.5rem; /* gap-2 */
     opacity: 0;
     transform: translateY(20px);
-    transition: opacity 0.3s ease-out, transform 0.3s ease-out;
+    transition: opacity 0.3s ease-out, transform 0.3s ease-out, background-color 0.3s ease, color 0.3s ease;
 }
 .custom-toast.show {
     opacity: 1;
     transform: translateY(0);
 }
-.toast-success {
-    background-color: #dcfce7; /* green-100 */
-    color: #166534; /* green-800 */
-}
-.toast-error {
-    background-color: #fee2e2; /* red-100 */
-    color: #991b1b; /* red-800 */
-}
-.toast-warning {
-    background-color: #ffedd5; /* orange-100 */
-    color: #9a3412; /* orange-800 */
-}
-.toast-info {
-    background-color: #e0e7ff; /* indigo-100 */
-    color: #3730a3; /* indigo-800 */
-}
 
-/* Optional: Ensure icons in toasts are sized correctly */
+/* Light Theme Toast Colors */
+.toast-success { background-color: #dcfce7; color: #166534; } /* green-100 / green-800 */
+.toast-error { background-color: #fee2e2; color: #991b1b; } /* red-100 / red-800 */
+.toast-warning { background-color: #ffedd5; color: #9a3412; } /* orange-100 / orange-800 */
+.toast-info { background-color: #e0e7ff; color: #3730a3; } /* indigo-100 / indigo-800 */
+
+/* Dark Theme Toast Colors */
+.dark .toast-success { background-color: #15803d; color: #dcfce7; } /* green-700 / green-100 */
+.dark .toast-error { background-color: #b91c1c; color: #fee2e2; } /* red-700 / red-100 */
+.dark .toast-warning { background-color: #c2410c; color: #ffedd5; } /* orange-700 / orange-100 */
+.dark .toast-info { background-color: #4338ca; color: #e0e7ff; } /* indigo-700 / indigo-100 */
+
+/* Ensure icons in toasts are sized correctly */
 .custom-toast i.material-icons-outlined {
     font-size: 1.25rem; /* text-xl */
 }
@@ -62,6 +73,7 @@
     vertical-align: middle;
     opacity: 0.4; /* Dimmed when inactive */
     transition: opacity 0.2s;
+    /* Color will be inherited from parent text color, adapting to dark/light */
 }
 th:hover .sort-icon {
     opacity: 0.6;
@@ -70,10 +82,8 @@ th.sort-active .sort-icon {
     opacity: 1;
 }
 .sort-icon::before {
-    /* *** THIS IS THE FIX *** */
     font-family: 'Material Icons'; /* Use the base font family name */
-    /* *** END OF FIX *** */
-    font-weight: normal; /* Ensure default weight */
+    font-weight: normal;
     font-style: normal;
     font-size: 1.1rem; /* Adjust size */
     line-height: 1;
@@ -99,5 +109,33 @@ th.sort-desc .sort-icon::before {
 #service-list .actions-cell button {
     vertical-align: middle;
 }
+
+/* Action button icon colors (Tailwind handles hover bg) */
+.actions-cell button[title="Start"] { color: #16a34a; } /* green-600 */
+.actions-cell button[title="Stop"] { color: #dc2626; } /* red-600 */
+.actions-cell button[title="Restart"] { color: #2563eb; } /* blue-600 */
+.actions-cell button[title="Enable"] { color: #0d9488; } /* teal-600 */
+.actions-cell button[title="Disable"] { color: #ea580c; } /* orange-600 */
+.actions-cell button[title="Status"],
+.actions-cell button[title="View/Edit File"] { color: #6b7280; } /* gray-500 */
+
+/* Dark mode action button icon colors */
+.dark .actions-cell button[title="Start"] { color: #34d399; } /* emerald-400 */
+.dark .actions-cell button[title="Stop"] { color: #f87171; } /* red-400 */
+.dark .actions-cell button[title="Restart"] { color: #60a5fa; } /* blue-400 */
+.dark .actions-cell button[title="Enable"] { color: #2dd4bf; } /* teal-400 */
+.dark .actions-cell button[title="Disable"] { color: #fb923c; } /* orange-400 */
+.dark .actions-cell button[title="Status"],
+.dark .actions-cell button[title="View/Edit File"] { color: #9ca3af; } /* gray-400 */
+
+/* Dark mode hover backgrounds for action buttons (using semi-transparent for subtlety) */
+.dark .actions-cell button[title="Start"]:hover { background-color: rgba(52, 211, 153, 0.15); }
+.dark .actions-cell button[title="Stop"]:hover { background-color: rgba(248, 113, 113, 0.15); }
+.dark .actions-cell button[title="Restart"]:hover { background-color: rgba(96, 165, 250, 0.15); }
+.dark .actions-cell button[title="Enable"]:hover { background-color: rgba(45, 212, 191, 0.15); }
+.dark .actions-cell button[title="Disable"]:hover { background-color: rgba(251, 146, 60, 0.15); }
+.dark .actions-cell button[title="Status"]:hover,
+.dark .actions-cell button[title="View/Edit File"]:hover { background-color: rgba(156, 163, 175, 0.15); }
+
 
 /* Add any other non-Tailwind custom styles here if absolutely needed */
