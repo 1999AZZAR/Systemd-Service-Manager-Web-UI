@@ -10,8 +10,10 @@ A modern, Flask-based web interface for managing systemd services on a Linux ser
 
 ## Screenshot
 
-*(Recommended: Add a screenshot of the main UI here)*
-![Screenshot](Screenshot.png)
+![Screenshot](Screenshot_0.png)
+![Screenshot](Screenshot_1.png)
+![Screenshot](Screenshot_2.png)
+![Screenshot](Screenshot_3.png)
 
 ## Features
 
