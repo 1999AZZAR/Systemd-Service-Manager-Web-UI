@@ -1,4 +1,4 @@
-/* Apply base transition for smoother theme changes */
+/* Apply base transition for smoother changes */
 body {
     transition: background-color 0.3s ease, color 0.3s ease;
 }
@@ -14,17 +14,11 @@ body {
 .status-static { color: #737373; font-style: italic; } /* neutral-500 */
 .status-masked { color: #ea580c; font-weight: 500; } /* orange-600 */
 
-/* Dark Theme Overrides */
-.dark .status-active { color: #6ee7b7; } /* emerald-300 */
-.dark .status-activating { color: #93c5fd; font-style: italic; } /* blue-300 */
-.dark .status-inactive { color: #a3a3a3; } /* neutral-400 */
-.dark .status-failed { color: #fca5a5; font-weight: 600;} /* red-300 */
-.dark .status-enabled { color: #86efac; } /* green-300 */
-.dark .status-disabled { color: #fda4af; } /* rose-300 */
-.dark .status-static { color: #a3a3a3; font-style: italic; } /* neutral-400 */
-.dark .status-masked { color: #fdba74; font-weight: 500; } /* orange-300 */
-/* --- End Status Color Classes --- */
-
+/* Sub Status Color Classes for Light Theme */
+.sub-running { color: #166534; font-weight: 500; } /* green-800, matches status-active */
+.sub-exited { color: #1e40af; } /* blue-800 */
+.sub-failed { color: #b91c1c; font-weight: 600; } /* red-700, matches status-failed */
+.sub-dead { color: #737373; } /* neutral-500, matches status-inactive */
 
 /* --- Custom Toast Styles --- */
 /* Base structure */
@@ -52,17 +46,10 @@ body {
 .toast-warning { background-color: #ffedd5; color: #9a3412; } /* orange-100 / orange-800 */
 .toast-info { background-color: #e0e7ff; color: #3730a3; } /* indigo-100 / indigo-800 */
 
-/* Dark Theme Toast Colors */
-.dark .toast-success { background-color: #15803d; color: #dcfce7; } /* green-700 / green-100 */
-.dark .toast-error { background-color: #b91c1c; color: #fee2e2; } /* red-700 / red-100 */
-.dark .toast-warning { background-color: #c2410c; color: #ffedd5; } /* orange-700 / orange-100 */
-.dark .toast-info { background-color: #4338ca; color: #e0e7ff; } /* indigo-700 / indigo-100 */
-
 /* Ensure icons in toasts are sized correctly */
 .custom-toast i.material-icons-outlined {
     font-size: 1.25rem; /* text-xl */
 }
-/* --- End Custom Toast Styles --- */
 
 /* --- Sort Icon Styles --- */
 .sort-icon {
@@ -73,12 +60,12 @@ body {
     vertical-align: middle;
     opacity: 0.4; /* Dimmed when inactive */
     transition: opacity 0.2s;
-    /* Color will be inherited from parent text color, adapting to dark/light */
+    /* Color will be inherited from parent text color */
 }
 th:hover .sort-icon {
     opacity: 0.6;
 }
-th.sort-active .sort-icon {
+th  th.sort-active .sort-icon {
     opacity: 1;
 }
 .sort-icon::before {
@@ -103,14 +90,13 @@ th.sort-asc .sort-icon::before {
 th.sort-desc .sort-icon::before {
     content: 'arrow_downward';
 }
-/* --- End Sort Icon Styles --- */
 
-/* Minor tweak for action buttons alignment */
+/* --- Action Button Styles --- */
 #service-list .actions-cell button {
     vertical-align: middle;
 }
 
-/* Action button icon colors (Tailwind handles hover bg) */
+/* Action button icon colors */
 .actions-cell button[title="Start"] { color: #16a34a; } /* green-600 */
 .actions-cell button[title="Stop"] { color: #dc2626; } /* red-600 */
 .actions-cell button[title="Restart"] { color: #2563eb; } /* blue-600 */
@@ -118,24 +104,3 @@ th.sort-desc .sort-icon::before {
 .actions-cell button[title="Disable"] { color: #ea580c; } /* orange-600 */
 .actions-cell button[title="Status"],
 .actions-cell button[title="View/Edit File"] { color: #6b7280; } /* gray-500 */
-
-/* Dark mode action button icon colors */
-.dark .actions-cell button[title="Start"] { color: #34d399; } /* emerald-400 */
-.dark .actions-cell button[title="Stop"] { color: #f87171; } /* red-400 */
-.dark .actions-cell button[title="Restart"] { color: #60a5fa; } /* blue-400 */
-.dark .actions-cell button[title="Enable"] { color: #2dd4bf; } /* teal-400 */
-.dark .actions-cell button[title="Disable"] { color: #fb923c; } /* orange-400 */
-.dark .actions-cell button[title="Status"],
-.dark .actions-cell button[title="View/Edit File"] { color: #9ca3af; } /* gray-400 */
-
-/* Dark mode hover backgrounds for action buttons (using semi-transparent for subtlety) */
-.dark .actions-cell button[title="Start"]:hover { background-color: rgba(52, 211, 153, 0.15); }
-.dark .actions-cell button[title="Stop"]:hover { background-color: rgba(248, 113, 113, 0.15); }
-.dark .actions-cell button[title="Restart"]:hover { background-color: rgba(96, 165, 250, 0.15); }
-.dark .actions-cell button[title="Enable"]:hover { background-color: rgba(45, 212, 191, 0.15); }
-.dark .actions-cell button[title="Disable"]:hover { background-color: rgba(251, 146, 60, 0.15); }
-.dark .actions-cell button[title="Status"]:hover,
-.dark .actions-cell button[title="View/Edit File"]:hover { background-color: rgba(156, 163, 175, 0.15); }
-
-
-/* Add any other non-Tailwind custom styles here if absolutely needed */
