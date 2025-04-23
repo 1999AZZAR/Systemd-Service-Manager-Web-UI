@@ -128,6 +128,17 @@ The `install.sh` script creates the necessary `sudoers` file (`/etc/sudoers.d/90
 
 **Important:** Always double-check the permissions you are granting, especially `NOPASSWD` commands and file writing permissions like `tee`.
 
+> **⚠️ WARNING:** Granting `NOPASSWD` for service file editing and/or journal access effectively grants root privileges for those operations without requiring a password. Misconfiguration or compromise of the web UI could:
+> - Modify or delete critical system unit files.
+> - Enable an attacker to install or alter services.
+> - Expose or tamper with sensitive system logs.
+>
+> **Recommendations:**
+> - Restrict commands to the narrowest possible paths and arguments (e.g., `/etc/systemd/system/*.service`).
+> - Avoid broad wildcards that may cover unintended files.
+> - Always validate changes with `visudo -c` and keep backup copies of sudoers files.
+> - Consider enabling logging/auditing (e.g., via `auditd`) to monitor sudo and journal access.
+
 ## Usage
 
 1.  **Access the UI:** Open your web browser and navigate to:
@@ -141,8 +152,10 @@ The `install.sh` script creates the necessary `sudoers` file (`/etc/sudoers.d/90
     *   **Reload Daemon Button:** Runs `sudo systemctl daemon-reload`.
     *   **Table Headers:** Click sortable headers (Unit, Load, Active, etc.) to sort the list. Click again to reverse order.
     *   **Service Rows:** Display information about each service.
-    *   **Action Buttons:** Icons for Start, Stop, Restart, Enable, Disable, Status, and View/Edit File. Hover for tooltips.
-    *   **Modals:** Pop-ups for viewing status output and viewing/editing unit files.
+    *   **Action Buttons:** Icons for Start, Stop, Restart, Enable, Disable, Status (opens status modal with integrated **View Logs**), and View/Edit File. Hover for tooltips.
+    *   **Modals:**
+    *       * **Status Modal:** Shows unit load/active/sub status and provides a **View Logs** button to fetch recent journal entries.
+    *       * **File Modal:** Displays and optionally edits unit file content within configured `ALLOWED_WRITE_DIRS`.
 
 ## Security Considerations
 

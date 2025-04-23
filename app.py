@@ -272,6 +272,21 @@ def get_service_file(service_name):
     ), 404  # Don't fallback if cat fails
 
 
+@app.route("/api/services/<service_name>/logs", methods=["GET"])
+def get_service_logs(service_name):
+    app.logger.info(f"API logs request for: {service_name}")
+    if not re.match(r"^[\w.\-@]+$", service_name):
+        abort(400, description="Invalid service name format.")
+    ret_code, stdout, stderr = run_systemctl(
+        f"journalctl -u {service_name} --no-pager", use_sudo=False
+    )
+    if ret_code != 0:
+        err_msg = f"Failed to get logs for {service_name}: {stderr or stdout}"
+        app.logger.error(err_msg)
+        return jsonify({"error": err_msg}), 500
+    return jsonify({"logs_output": stdout})
+
+
 # --- *** FILE EDITING ENDPOINT *** ---
 @app.route("/api/services/<service_name>/file", methods=["POST"])
 def update_service_file(service_name):

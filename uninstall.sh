@@ -182,6 +182,16 @@ else
     print_info "Sudoers file not found."
 fi
 
+# Revoke Journal Access
+print_step "Revoking Journal Access"
+print_info "Removing ${SERVICE_USER} from systemd-journal group..."
+if getent group systemd-journal >/dev/null 2>&1; then
+    gpasswd -d "${SERVICE_USER}" systemd-journal || print_warning "Failed to remove ${SERVICE_USER} from systemd-journal group"
+    print_success "${SERVICE_USER} removed from systemd-journal group."
+else
+    print_info "Group 'systemd-journal' not found; nothing to revoke."
+fi
+
 # 5. Remove Application Directory including virtual environment
 print_step "Removing Application Files"
 print_info "Checking application directory: ${APP_DIR}..."

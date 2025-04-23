@@ -186,18 +186,15 @@ chown -R "${SERVICE_USER}:${SERVICE_GROUP}" "${APP_DIR}" || print_warning "Faile
 chmod -R 750 "${APP_DIR}" || print_warning "Failed to set directory permissions"
 print_success "Permissions set."
 
-# Confirm function for yes/no prompts
-confirm() {
-    read -r -p "${1:-Are you sure? [y/N]} " response
-    case "$response" in
-    [yY][eE][sS] | [yY])
-        true
-        ;;
-    *)
-        false
-        ;;
-    esac
-}
+# --- Journal Access Setup ---
+print_step "Granting Journal Access"
+print_info "Adding ${SERVICE_USER} to systemd-journal group for log viewing..."
+if getent group systemd-journal >/dev/null 2>&1; then
+    usermod -aG systemd-journal "${SERVICE_USER}" || print_warning "Failed to add ${SERVICE_USER} to systemd-journal group"
+    print_success "${SERVICE_USER} added to systemd-journal group."
+else
+    print_warning "Group 'systemd-journal' not found; journalctl may still require sudo."
+fi
 
 # 6. Configure Sudoers
 print_step "Configuring Sudoers"
@@ -218,6 +215,8 @@ ${SERVICE_USER} ALL=(ALL) NOPASSWD: /bin/systemctl disable *
 ${SERVICE_USER} ALL=(ALL) NOPASSWD: /bin/systemctl daemon-reload
 ${SERVICE_USER} ALL=(ALL) NOPASSWD: /bin/systemctl cat *
 ${SERVICE_USER} ALL=(ALL) NOPASSWD: /bin/systemctl show -p FragmentPath --value *
+# Allow journalctl for logs
+${SERVICE_USER} ALL=(ALL) NOPASSWD: /usr/bin/journalctl *
 
 # Add file editing capability - SECURITY RISK - Comment or remove if not needed
 EOF

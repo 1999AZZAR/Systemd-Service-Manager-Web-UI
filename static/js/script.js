@@ -27,6 +27,12 @@ document.addEventListener('DOMContentLoaded', function() {
     const editControls = document.getElementById('edit-controls');
     const fileEditWarning = document.getElementById('file-edit-warning');
 
+    // Logs Modal Elements
+    const logsModal = document.getElementById('logs-modal');
+    const logsModalContent = document.getElementById('logs-modal-content');
+    const logsModalServiceName = document.getElementById('logs-modal-service-name');
+    const viewLogsButton = document.getElementById('view-logs-button');
+
     // --- State Variables ---
     let allServicesData = [];
     let currentEditingService = null;
@@ -82,6 +88,7 @@ document.addEventListener('DOMContentLoaded', function() {
             resetFileModalToViewMode();
         }
     }});
+    logsModal.addEventListener('click', (e) => { if (e.target === logsModal) closeModal(logsModal); });
 
     // --- API Communication ---
     async function apiRequest(method, url, data = null) {
@@ -159,6 +166,19 @@ document.addEventListener('DOMContentLoaded', function() {
             statusModalContent.textContent = result.status_output || 'No status output received.';
         } catch (error) {
             statusModalContent.textContent = `Error loading status: ${error.message}`;
+        }
+    }
+
+    async function showServiceLogs(serviceName) {
+        logsModalServiceName.textContent = serviceName;
+        logsModalContent.textContent = 'Loading logs...';
+        openModal(logsModal);
+
+        try {
+            const result = await apiRequest('GET', `/api/services/${serviceName}/logs`);
+            logsModalContent.textContent = result.logs_output || 'No logs available.';
+        } catch (error) {
+            logsModalContent.textContent = `Error loading logs: ${error.message}`;
         }
     }
 
@@ -362,6 +382,10 @@ document.addEventListener('DOMContentLoaded', function() {
     searchInput.addEventListener('input', applyFilterAndSort);
     refreshButton.addEventListener('click', fetchServices);
     daemonReloadButton.addEventListener('click', () => { performServiceAction('daemon', 'daemon-reload'); });
+    viewLogsButton?.addEventListener('click', () => {
+        const serviceName = statusModalTitle.textContent;
+        if (serviceName) showServiceLogs(serviceName);
+    });
 
     // --- File Modal Edit/Save/Cancel Listeners ---
     editButton.addEventListener('click', () => {
